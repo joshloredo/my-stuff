@@ -154,9 +154,14 @@ ENABLE_HELP_MENU=true
 # -------------------------------
 #  General Settings and Aliases
 # -------------------------------
-
 # Color prompt (optional)
 export PS1='\[\e[0;34m\]\u@\h:\[\e[0;32m\]\w\[\e[m\]\$ '
+# Set vim as the default editor
+export EDITOR='vim'
+
+# Reload .bashrc
+alias reload="source ~/.bashrc"
+echo -e "${BOLD_BLUE}bashrc loaded successfully!${RESET}"
 
 # Primary Colors
 BLACK='\033[0;30m'
@@ -201,12 +206,6 @@ BRIGHT_WHITE='\033[0;97m'
 # Reset Color
 RESET='\033[0m'
 
-# Set vim as the default editor
-export EDITOR='vim'
-
-# Reload .bashrc
-alias reload="source ~/.bashrc"
-echo -e "${BOLD_BLUE}bashrc loaded successfully!${RESET}"
 
 # System monitoring function (only if enabled)
 if [[ -n "$ENABLE_SYSTEM_MONITORING" ]]; then

@@ -80,6 +80,14 @@ else
     # sudo apt install lolcat
 fi
 
+# Set vim as default editor
+export EDITOR='vim'
+
+# Custom prompt with git information and current time
+PROMPT='%n@%m:%~$ '
+# Reload zshrc
+alias reload="source ~/.zshrc"
+
 # Feature toggles - Comment out to disable related functionality
 ENABLE_OHMYZSH=true
 ENABLE_CPP_TOOLS=true
@@ -93,15 +101,8 @@ ENABLE_CMAKE_TOOLS=true
 ENABLE_NETWORK_TOOLS=true
 ENABLE_HELP_MENU=true
 ENABLE_FILE_TOOLS=true
-ENABEL_COLORS=true
+ENABLE_COLORS=true
 
-# Set vim as default editor
-export EDITOR='vim'
-
-# Custom prompt with git information and current time
-PROMPT='%n@%m:%~$ '
-# Reload zshrc
-alias reload="source ~/.zshrc"
 
 # Helper functions
 command_exists() {
