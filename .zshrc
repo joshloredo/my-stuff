@@ -1,3 +1,11 @@
+#
+#              _            __             
+#             (_)___  _____/ /_  __________
+#            / / __ \/ ___/ __ \/ ___/ ___/
+#     _     / / /_/ (__  ) / / / /  / /__           - supercharged zshrc file
+#    (_)  _/ /\____/____/_/ /_/_/   \___/  
+#       /___/                              
+#
 # ================================
 #        Dependencies Setup        
 # ================================
@@ -281,7 +289,7 @@ EOF
 EOF
             echo "${RESET}"
         fi
-        echo "${BOLD_PURPLE}$(date '+%H:%M:%S')${RESET} on ${BOLD_GREEN}$(date '+%b %d')${RESET} ${BOLD_YELLOW}• Happy coding! 🚀${RESET}"
+        echo "${BOLD_PURPLE}$(date '+%H:%M:%S')${RESET} on ${BOLD_GREEN}$(date '+%b %d')${RESET} ${BOLD_YELLOW}• Get to work! 🚀${RESET}"
         echo ""
     }
     
