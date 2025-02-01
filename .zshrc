@@ -92,6 +92,13 @@ ENABLE_KUBERNETES=true
 ENABLE_SYSTEM_MONITORING=true
 ENABLE_GIT_FEATURES=true
 ENABLE_WELCOME_MESSAGE=true
+ENABLE_NODE_TOOLS=true
+ENABLE_QT_TOOLS=true
+ENABLE_CMAKE_TOOLS=true
+ENABLE_SSH_TOOLS=true
+ENABLE_NETWORK_TOOLS=true
+ENABLE_HELP_MENU=true
+ENABLE_FILE_TOOLS=true
 
 # ================================
 #          .zshrc Setup           
@@ -304,3 +311,248 @@ $ '
 # ================================
 #  End of zshrc File             
 # ================================ 
+
+# Add helper functions near the top after OS detection
+command_exists() {
+    command -v "$1" >/dev/null 2>&1
+}
+
+feature_warn() {
+    echo "${YELLOW}Warning: $1 requires $2, which is not available${RESET}" >&2
+}
+
+# Add to the Network Tools section
+if [[ -n "$ENABLE_NETWORK_TOOLS" ]]; then
+    # Public IP (with offline fallback)
+    function get_public_ip() {
+        if command_exists curl; then
+            curl -s --connect-timeout 1 https://api.ipify.org 2>/dev/null || echo "No internet connection"
+        else
+            feature_warn "Public IP check" "curl"
+        fi
+    }
+    alias myip='get_public_ip'
+
+    # Local IP (more resilient)
+    function get_local_ip() {
+        if [[ "$IS_MACOS" == true ]]; then
+            if command_exists ipconfig; then
+                ipconfig getifaddr en0 || ipconfig getifaddr en1
+            else
+                ifconfig en0 2>/dev/null | grep 'inet ' | awk '{print $2}'
+            fi
+        else
+            hostname -I 2>/dev/null | awk '{print $1}' || \
+            ip addr show 2>/dev/null | grep 'inet ' | grep -v 127.0.0.1 | awk '{print $2}' | cut -d/ -f1 || \
+            ifconfig 2>/dev/null | grep 'inet ' | grep -v 127.0.0.1 | awk '{print $2}'
+        fi
+    }
+    alias localip='get_local_ip'
+
+    # Port management
+    function portcheck() {
+        if [[ "$IS_MACOS" == true ]]; then
+            lsof -i ":$1"
+        else
+            netstat -tuln | grep ":$1"
+        fi
+    }
+
+    function killport() {
+        if [[ "$IS_MACOS" == true ]]; then
+            lsof -ti ":$1" | xargs kill -9
+        else
+            fuser -k "$1/tcp"
+        fi
+    }
+
+    # SSH/SCP helpers
+    function scpto() {
+        scp -r "$1" "$2":"$3"
+    }
+
+    function scpfrom() {
+        scp -r "$1":"$2" "$3"
+    }
+
+    function rsyncto() {
+        rsync -avz --progress "$1" "$2":"$3"
+    }
+
+    function rsyncfrom() {
+        rsync -avz --progress "$1":"$2" "$3"
+    }
+fi
+
+# Add File Tools section
+if [[ -n "$ENABLE_FILE_TOOLS" ]]; then
+    # ff: Find files by name pattern
+    # Usage: ff [pattern]
+    function ff() {
+        local pattern="${1:-}"
+        if [ -z "$pattern" ]; then
+            if command_exists fzf; then
+                find . -type f 2>/dev/null | fzf --preview 'cat {}'
+            else
+                echo "${YELLOW}Usage: ff pattern${RESET}"
+                echo "${YELLOW}Example: ff '*.cpp' or ff config${RESET}"
+                return 1
+            fi
+        else
+            if command_exists fzf; then
+                find . -type f -iname "*${pattern}*" 2>/dev/null | fzf --preview 'cat {}'
+            else
+                find . -type f -iname "*${pattern}*" 2>/dev/null | while read -r file; do
+                    echo "${GREEN}${file}${RESET}"
+                done
+            fi
+        fi
+    }
+
+    # fc: Find content in files
+    # Usage: fc "search pattern" [file pattern]
+    function fc() {
+        local search_pattern="$1"
+        local file_pattern="${2:-*}"
+        
+        if [ -z "$search_pattern" ]; then
+            echo "${YELLOW}Usage: fc 'search pattern' [file pattern]${RESET}"
+            echo "${YELLOW}Example: fc 'main' '*.cpp' or fc 'TODO'${RESET}"
+            return 1
+        fi
+
+        if command_exists rg; then
+            if command_exists fzf; then
+                rg --color=always -l "$search_pattern" 2>/dev/null | \
+                fzf --preview "rg --color=always -n '$search_pattern' {}"
+            else
+                rg --color=always -n "$search_pattern" 2>/dev/null
+            fi
+        else
+            if command_exists fzf; then
+                find . -type f -name "$file_pattern" -exec grep -l "$search_pattern" {} \; 2>/dev/null | \
+                fzf --preview "grep -n --color=always '$search_pattern' {}"
+            else
+                find . -type f -name "$file_pattern" -exec grep -l "$search_pattern" {} \; 2>/dev/null | \
+                while read -r file; do
+                    echo "${GREEN}${file}${RESET}"
+                    grep -n --color=always "$search_pattern" "$file"
+                    echo ""
+                done
+            fi
+        fi
+    }
+
+    # fd: Find directories
+    # Usage: fd [pattern]
+    function fd() {
+        local pattern="${1:-}"
+        if [ -z "$pattern" ]; then
+            if command_exists fzf; then
+                find . -type d 2>/dev/null | fzf --preview 'ls -la {}'
+            else
+                echo "${YELLOW}Usage: fd pattern${RESET}"
+                echo "${YELLOW}Example: fd src or fd build${RESET}"
+                return 1
+            fi
+        else
+            if command_exists fzf; then
+                find . -type d -iname "*${pattern}*" 2>/dev/null | fzf --preview 'ls -la {}'
+            else
+                find . -type d -iname "*${pattern}*" 2>/dev/null | while read -r dir; do
+                    echo "${GREEN}${dir}${RESET}"
+                done
+            fi
+        fi
+    }
+
+    # fe: Find and edit file
+    # Usage: fe [pattern]
+    function fe() {
+        local file
+        if command_exists fzf; then
+            if [ -z "$1" ]; then
+                file=$(find . -type f 2>/dev/null | fzf --preview 'cat {}')
+            else
+                file=$(find . -type f -iname "*$1*" 2>/dev/null | fzf --preview 'cat {}')
+            fi
+        else
+            if [ -z "$1" ]; then
+                echo "${YELLOW}Usage: fe pattern${RESET}"
+                echo "${YELLOW}Example: fe config${RESET}"
+                return 1
+            else
+                local files=($(find . -type f -iname "*$1*" 2>/dev/null))
+                if [ ${#files[@]} -eq 0 ]; then
+                    echo "${RED}No files found matching '$1'${RESET}"
+                    return 1
+                elif [ ${#files[@]} -eq 1 ]; then
+                    file="${files[0]}"
+                else
+                    echo "${YELLOW}Multiple files found:${RESET}"
+                    for i in "${!files[@]}"; do
+                        echo "${GREEN}$((i+1))${RESET}) ${files[$i]}"
+                    done
+                    read "?Select file number: " number
+                    if [[ "$number" =~ ^[0-9]+$ ]] && [ "$number" -ge 1 ] && [ "$number" -le ${#files[@]} ]; then
+                        file="${files[$((number-1))]}"
+                    else
+                        echo "${RED}Invalid selection${RESET}"
+                        return 1
+                    fi
+                fi
+            fi
+        fi
+        [ -n "$file" ] && $EDITOR "$file"
+    }
+fi
+
+# Add Help Menu system
+if [[ -n "$ENABLE_HELP_MENU" ]]; then
+    function help() {
+        local filter="$1"
+        local show_all=true
+        
+        if [ -n "$filter" ]; then
+            show_all=false
+        fi
+        
+        # Header and filter information
+        if $show_all; then
+            echo "\n${BOLD_BLUE}=== Command Reference ===${RESET}"
+            echo "${BOLD_RED}To filter by category, run ${BOLD_WHITE}help <filter>${BOLD_RED}. Available filters are:${RESET}"
+            echo "${BOLD_CYAN}file  git  build  network  system${RESET}\n"
+        elif [[ "file navigation" == *"$filter"* ]]; then
+            echo "\n${BOLD_BLUE}=== Command Reference ===${RESET}\n"
+        fi
+        
+        # ... [rest of help menu categories] ...
+        # (Same as bashrc but with zsh-specific syntax for echo/printf)
+        
+        # Footer modified to only show man page reminder when showing all
+        if $show_all; then
+            echo "${BOLD_BLUE}Use 'man command' for more detailed information about specific commands${RESET}\n"
+        elif [ -z "$(help_matches "$filter")" ]; then
+            echo "\n${BOLD_RED}No matches found for filter: $filter${RESET}"
+            echo "${BOLD_RED}Available filters are:${RESET}"
+            echo "${BOLD_CYAN}file  git  build  network  system${RESET}"
+            echo "\n${BOLD_WHITE}Usage: help <filter>${RESET}\n"
+        fi
+    }
+    
+    # Helper function to check if filter matches any category
+    function help_matches() {
+        local filter="$1"
+        local found=false
+        [[ "file navigation" == *"$filter"* ]] && found=true
+        [[ "git" == *"$filter"* ]] && found=true
+        [[ "build" == *"$filter"* ]] && found=true
+        [[ "network" == *"$filter"* ]] && found=true
+        [[ "system" == *"$filter"* ]] && found=true
+        echo "$found"
+    }
+    
+    # Add aliases for quick access
+    alias h?='help'
+    alias help='help'
+fi 
