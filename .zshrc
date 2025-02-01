@@ -104,27 +104,27 @@ ENABLE_FILE_TOOLS=true
 #          .zshrc Setup           
 # ================================
 
-# Oh-my-zsh configuration (only if enabled)
-if [[ -n "$ENABLE_OHMYZSH" ]]; then
-    export ZSH="$HOME/.oh-my-zsh"
-    ZSH_THEME="robbyrussell"
-    
-    # Base plugins that should always be available
-    plugins=(
-        history
-        colored-man-pages
-        command-not-found
-    )
-    
-    # Conditionally add plugins if they exist
-    [[ -d ${ZSH_CUSTOM:-~/.oh-my-zsh/custom}/plugins/zsh-autosuggestions ]] && plugins+=(zsh-autosuggestions)
-    [[ -d ${ZSH_CUSTOM:-~/.oh-my-zsh/custom}/plugins/zsh-syntax-highlighting ]] && plugins+=(zsh-syntax-highlighting)
-    [[ -n "$ENABLE_GIT_FEATURES" ]] && plugins+=(git)
-    [[ -n "$ENABLE_DOCKER" ]] && plugins+=(docker)
-    [[ -n "$ENABLE_KUBERNETES" ]] && plugins+=(kubectl)
-    
-    source $ZSH/oh-my-zsh.sh
-fi
+# Temporarily comment out oh-my-zsh
+# if [[ -n "$ENABLE_OHMYZSH" ]]; then
+#     export ZSH="$HOME/.oh-my-zsh"
+#     ZSH_THEME="robbyrussell"
+#     
+#     # Base plugins that should always be available
+#     plugins=(
+#         history
+#         colored-man-pages
+#         command-not-found
+#     )
+#     
+#     # Conditionally add plugins if they exist
+#     [[ -d ${ZSH_CUSTOM:-~/.oh-my-zsh/custom}/plugins/zsh-autosuggestions ]] && plugins+=(zsh-autosuggestions)
+#     [[ -d ${ZSH_CUSTOM:-~/.oh-my-zsh/custom}/plugins/zsh-syntax-highlighting ]] && plugins+=(zsh-syntax-highlighting)
+#     [[ -n "$ENABLE_GIT_FEATURES" ]] && plugins+=(git)
+#     [[ -n "$ENABLE_DOCKER" ]] && plugins+=(docker)
+#     [[ -n "$ENABLE_KUBERNETES" ]] && plugins+=(kubectl)
+#     
+#     source $ZSH/oh-my-zsh.sh
+# fi
 
 # -------------------------------
 #  General Settings and Aliases
@@ -140,8 +140,6 @@ alias la="ls -A"
 alias l="ls -CF"
 alias md="mkdir -p"
 alias rd="rmdir"
-alias ~="cd ~"
-alias home="cd ~"
 
 # C++ project build management (only if enabled)
 if [[ -n "$ENABLE_CPP_TOOLS" ]]; then
@@ -192,6 +190,15 @@ RESET=$reset_color
 # -------------------------------
 #  Useful Functions
 # -------------------------------
+
+# Helper functions
+command_exists() {
+    command -v "$1" >/dev/null 2>&1
+}
+
+feature_warn() {
+    echo "${YELLOW}Warning: $1 requires $2, which is not available${RESET}" >&2
+}
 
 # Function to go up multiple directories
 up() {
@@ -305,8 +312,7 @@ EOF
 fi
 
 # Custom prompt with git information and current time
-PROMPT='${BOLD_GREEN}%n@%m${RESET}:${BOLD_BLUE}%~${RESET}$(git_prompt_info) ${BOLD_YELLOW}[%T]${RESET}
-$ '
+PROMPT='%n@%m:%~$ '
 
 # ================================
 #  End of zshrc File             
@@ -519,16 +525,16 @@ if [[ -n "$ENABLE_HELP_MENU" ]]; then
         
         # Header and filter information
         if $show_all; then
-            echo "\n${BOLD_BLUE}=== Command Reference ===${RESET}"
-            echo "${BOLD_RED}To filter by category, run ${BOLD_WHITE}help <filter>${BOLD_RED}. Available filters are:${RESET}"
-            echo "${BOLD_CYAN}file  git  build  network  system${RESET}\n"
+            print -P "\n${BOLD_BLUE}=== Command Reference ===${RESET}"
+            print -P "${BOLD_RED}To filter by category, run ${BOLD_WHITE}help <filter>${BOLD_RED}. Available filters are:${RESET}"
+            print -P "${BOLD_CYAN}file  git  build  network  system${RESET}\n"
         elif [[ "file navigation" == *"$filter"* ]]; then
-            echo "\n${BOLD_BLUE}=== Command Reference ===${RESET}\n"
+            print -P "\n${BOLD_BLUE}=== Command Reference ===${RESET}\n"
         fi
         
         # File Navigation
         if $show_all || [[ "file navigation" == *"$filter"* ]]; then
-            echo "${BOLD_GREEN}[ File Navigation ]${RESET}"
+            print -P "${BOLD_GREEN}[ File Navigation ]${RESET}"
             printf "%-20s %-30s    %-20s %-30s\n" \
                 "ff pattern" "find files by name" \
                 "fd pattern" "find directories" \
@@ -543,7 +549,7 @@ if [[ -n "$ENABLE_HELP_MENU" ]]; then
         
         # Git Commands
         if $show_all || [[ "git" == *"$filter"* ]]; then
-            echo "${BOLD_GREEN}[ Git Commands ]${RESET}"
+            print -P "${BOLD_GREEN}[ Git Commands ]${RESET}"
             printf "%-20s %-30s    %-20s %-30s\n" \
                 "gs" "git status" \
                 "gl" "git log graph" \
@@ -558,7 +564,7 @@ if [[ -n "$ENABLE_HELP_MENU" ]]; then
         
         # Build Tools
         if $show_all || [[ "build" == *"$filter"* ]]; then
-            echo "${BOLD_GREEN}[ Build Tools ]${RESET}"
+            print -P "${BOLD_GREEN}[ Build Tools ]${RESET}"
             printf "%-20s %-30s    %-20s %-30s\n" \
                 "build" "make with all cores" \
                 "clean" "make clean" \
@@ -573,7 +579,7 @@ if [[ -n "$ENABLE_HELP_MENU" ]]; then
         
         # Network Tools
         if $show_all || [[ "network" == *"$filter"* ]]; then
-            echo "${BOLD_GREEN}[ Network Tools ]${RESET}"
+            print -P "${BOLD_GREEN}[ Network Tools ]${RESET}"
             printf "%-20s %-30s    %-20s %-30s\n" \
                 "myip" "show public IP" \
                 "localip" "show local IP" \
@@ -588,7 +594,7 @@ if [[ -n "$ENABLE_HELP_MENU" ]]; then
         
         # System Tools
         if $show_all || [[ "system" == *"$filter"* ]]; then
-            echo "${BOLD_GREEN}[ System Tools ]${RESET}"
+            print -P "${BOLD_GREEN}[ System Tools ]${RESET}"
             printf "%-20s %-30s    %-20s %-30s\n" \
                 "ll" "detailed list" \
                 "la" "list all files" \
@@ -603,12 +609,12 @@ if [[ -n "$ENABLE_HELP_MENU" ]]; then
         
         # Footer modified to only show man page reminder when showing all
         if $show_all; then
-            echo "${BOLD_BLUE}Use 'man command' for more detailed information about specific commands${RESET}\n"
+            print -P "${BOLD_BLUE}Use 'man command' for more detailed information about specific commands${RESET}\n"
         elif [ -z "$(help_matches "$filter")" ]; then
-            echo "\n${BOLD_RED}No matches found for filter: $filter${RESET}"
-            echo "${BOLD_RED}Available filters are:${RESET}"
-            echo "${BOLD_CYAN}file  git  build  network  system${RESET}"
-            echo "\n${BOLD_WHITE}Usage: help <filter>${RESET}\n"
+            print -P "\n${BOLD_RED}No matches found for filter: $filter${RESET}"
+            print -P "${BOLD_RED}Available filters are:${RESET}"
+            print -P "${BOLD_CYAN}file  git  build  network  system${RESET}"
+            print -P "\n${BOLD_WHITE}Usage: help <filter>${RESET}\n"
         fi
     }
     
