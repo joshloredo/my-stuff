@@ -134,7 +134,7 @@ fi
 alias ..="cd .."
 alias ...="cd ../.."
 alias ....="cd ../../.."
-alias h="cd ~"
+alias home="cd ~"
 alias ll="ls -alF"
 alias la="ls -A"
 alias l="ls -CF"
@@ -526,8 +526,80 @@ if [[ -n "$ENABLE_HELP_MENU" ]]; then
             echo "\n${BOLD_BLUE}=== Command Reference ===${RESET}\n"
         fi
         
-        # ... [rest of help menu categories] ...
-        # (Same as bashrc but with zsh-specific syntax for echo/printf)
+        # File Navigation
+        if $show_all || [[ "file navigation" == *"$filter"* ]]; then
+            echo "${BOLD_GREEN}[ File Navigation ]${RESET}"
+            printf "%-20s %-30s    %-20s %-30s\n" \
+                "ff pattern" "find files by name" \
+                "fd pattern" "find directories" \
+                "fc pattern" "find in file contents" \
+                "fe pattern" "find and edit file" \
+                "up n" "go up n directories" \
+                "md dirname" "create directory" \
+                ".." "go up one directory" \
+                "..." "go up two directories"
+            echo ""
+        fi
+        
+        # Git Commands
+        if $show_all || [[ "git" == *"$filter"* ]]; then
+            echo "${BOLD_GREEN}[ Git Commands ]${RESET}"
+            printf "%-20s %-30s    %-20s %-30s\n" \
+                "gs" "git status" \
+                "gl" "git log graph" \
+                "gp" "git push" \
+                "gpl" "git pull" \
+                "gcmsg 'msg'" "commit with message" \
+                "gaa" "git add all" \
+                "gco branch" "checkout branch" \
+                "gcb branch" "create/checkout branch"
+            echo ""
+        fi
+        
+        # Build Tools
+        if $show_all || [[ "build" == *"$filter"* ]]; then
+            echo "${BOLD_GREEN}[ Build Tools ]${RESET}"
+            printf "%-20s %-30s    %-20s %-30s\n" \
+                "build" "make with all cores" \
+                "clean" "make clean" \
+                "rebuild" "clean and rebuild" \
+                "cmaked" "cmake debug build" \
+                "cmaker" "cmake release build" \
+                "cb" "cmake build" \
+                "ct" "cmake test" \
+                "cr" "cmake run"
+            echo ""
+        fi
+        
+        # Network Tools
+        if $show_all || [[ "network" == *"$filter"* ]]; then
+            echo "${BOLD_GREEN}[ Network Tools ]${RESET}"
+            printf "%-20s %-30s    %-20s %-30s\n" \
+                "myip" "show public IP" \
+                "localip" "show local IP" \
+                "portcheck num" "check port usage" \
+                "killport num" "kill port process" \
+                "scpto src dst" "copy to remote" \
+                "scpfrom src dst" "copy from remote" \
+                "rsyncto src dst" "sync to remote" \
+                "rsyncfrom src dst" "sync from remote"
+            echo ""
+        fi
+        
+        # System Tools
+        if $show_all || [[ "system" == *"$filter"* ]]; then
+            echo "${BOLD_GREEN}[ System Tools ]${RESET}"
+            printf "%-20s %-30s    %-20s %-30s\n" \
+                "ll" "detailed list" \
+                "la" "list all files" \
+                "findlarge" "find large files" \
+                "system_info" "show system status" \
+                "reload" "reload shell config" \
+                "home" "go to home dir" \
+                "md name" "mkdir -p name" \
+                "rd name" "remove directory"
+            echo ""
+        fi
         
         # Footer modified to only show man page reminder when showing all
         if $show_all; then
@@ -553,6 +625,5 @@ if [[ -n "$ENABLE_HELP_MENU" ]]; then
     }
     
     # Add aliases for quick access
-    alias h?='help'
-    alias help='help'
+    alias h='help'
 fi 
