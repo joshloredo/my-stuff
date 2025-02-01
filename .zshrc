@@ -6,10 +6,6 @@
 #    (_)  _/ /\____/____/_/ /_/_/   \___/  
 #       /___/                              
 #
-# ================================
-#        Dependencies Setup        
-# ================================
-# Comment out any ENABLE_* variables to disable features requiring those dependencies
 
 # Detect OS and set system-specific variables
 if [[ "$(uname)" == "Darwin" ]]; then
@@ -87,109 +83,25 @@ fi
 # Feature toggles - Comment out to disable related functionality
 ENABLE_OHMYZSH=true
 ENABLE_CPP_TOOLS=true
-ENABLE_DOCKER=true
-ENABLE_KUBERNETES=true
 ENABLE_SYSTEM_MONITORING=true
 ENABLE_GIT_FEATURES=true
 ENABLE_WELCOME_MESSAGE=true
+ENABLE_SSH_TOOLS=true
 ENABLE_NODE_TOOLS=true
 ENABLE_QT_TOOLS=true
 ENABLE_CMAKE_TOOLS=true
-ENABLE_SSH_TOOLS=true
 ENABLE_NETWORK_TOOLS=true
 ENABLE_HELP_MENU=true
 ENABLE_FILE_TOOLS=true
+ENABEL_COLORS=true
 
-# ================================
-#          .zshrc Setup           
-# ================================
+# Set vim as default editor
+export EDITOR='vim'
 
-# Temporarily comment out oh-my-zsh
-# if [[ -n "$ENABLE_OHMYZSH" ]]; then
-#     export ZSH="$HOME/.oh-my-zsh"
-#     ZSH_THEME="robbyrussell"
-#     
-#     # Base plugins that should always be available
-#     plugins=(
-#         history
-#         colored-man-pages
-#         command-not-found
-#     )
-#     
-#     # Conditionally add plugins if they exist
-#     [[ -d ${ZSH_CUSTOM:-~/.oh-my-zsh/custom}/plugins/zsh-autosuggestions ]] && plugins+=(zsh-autosuggestions)
-#     [[ -d ${ZSH_CUSTOM:-~/.oh-my-zsh/custom}/plugins/zsh-syntax-highlighting ]] && plugins+=(zsh-syntax-highlighting)
-#     [[ -n "$ENABLE_GIT_FEATURES" ]] && plugins+=(git)
-#     [[ -n "$ENABLE_DOCKER" ]] && plugins+=(docker)
-#     [[ -n "$ENABLE_KUBERNETES" ]] && plugins+=(kubectl)
-#     
-#     source $ZSH/oh-my-zsh.sh
-# fi
-
-# -------------------------------
-#  General Settings and Aliases
-# -------------------------------
-
-# Navigation aliases
-alias ..="cd .."
-alias ...="cd ../.."
-alias ....="cd ../../.."
-alias home="cd ~"
-alias ll="ls -alF"
-alias la="ls -A"
-alias l="ls -CF"
-alias md="mkdir -p"
-alias rd="rmdir"
-
-# C++ project build management (only if enabled)
-if [[ -n "$ENABLE_CPP_TOOLS" ]]; then
-    alias build="make -j$CPU_COUNT"
-    
-    alias clean="make clean"
-    alias rebuild="make clean && build"
-    alias run="./a.out"
-    alias gpp="g++ -std=c++17"
-    alias cppcheck="cppcheck --enable=all"
-    
-    # Version checking aliases
-    alias gccv="gcc --version"
-    alias gppv="g++ --version"
-    alias clangv="clang --version"
-    alias makev="make --version"
-    alias cmakev="cmake --version"
-    alias glibcv="ldd --version"
-fi
-
-# -------------------------------
-#  ASCII Color Escape Codes
-# -------------------------------
-
-# Primary Colors
-BLACK=$fg[black]
-RED=$fg[red]
-GREEN=$fg[green]
-YELLOW=$fg[yellow]
-BLUE=$fg[blue]
-PURPLE=$fg[magenta]
-CYAN=$fg[cyan]
-WHITE=$fg[white]
-
-# Bold Text Colors
-BOLD_BLACK=$fg_bold[black]
-BOLD_RED=$fg_bold[red]
-BOLD_GREEN=$fg_bold[green]
-BOLD_YELLOW=$fg_bold[yellow]
-BOLD_BLUE=$fg_bold[blue]
-BOLD_PURPLE=$fg_bold[magenta]
-BOLD_CYAN=$fg_bold[cyan]
-BOLD_WHITE=$fg_bold[white]
-
-# Reset Color
-RESET=$reset_color
-
-# -------------------------------
-#  Useful Functions
-# -------------------------------
+# Custom prompt with git information and current time
+PROMPT='%n@%m:%~$ '
+# Reload zshrc
+alias reload="source ~/.zshrc"
 
 # Helper functions
 command_exists() {
@@ -223,9 +135,50 @@ boardle() {
     grep -i -E "[$in_word_but_not_pos]" |
     grep -i -E "^$known_positions_regex$"
 }
+if [[ -n "$ENABLE_COLORS" ]]; then
+    # Primary Colors
+    BLACK=$fg[black]
+    RED=$fg[red]
+    GREEN=$fg[green]
+    YELLOW=$fg[yellow]
+    BLUE=$fg[blue]
+    PURPLE=$fg[magenta]
+    CYAN=$fg[cyan]
+    WHITE=$fg[white]
 
-# Find large files
-alias findlarge="find . -type f -exec du -h {} + | sort -rh | head -n 10"
+    # Bold Text Colors
+    BOLD_BLACK=$fg_bold[black]
+    BOLD_RED=$fg_bold[red]
+    BOLD_GREEN=$fg_bold[green]
+    BOLD_YELLOW=$fg_bold[yellow]
+    BOLD_BLUE=$fg_bold[blue]
+    BOLD_PURPLE=$fg_bold[magenta]
+    BOLD_CYAN=$fg_bold[cyan]
+    BOLD_WHITE=$fg_bold[white]
+
+    # Reset Color
+    RESET=$reset_color
+
+fi
+
+if [[ -n "$ENABLE_OHMYZSH" ]]; then
+    export ZSH="$HOME/.oh-my-zsh"
+    ZSH_THEME="robbyrussell"
+    
+    # Base plugins that should always be available
+    plugins=(
+        history
+        colored-man-pages
+        command-not-found
+    )
+    
+    # Conditionally add plugins if they exist
+    [[ -d ${ZSH_CUSTOM:-~/.oh-my-zsh/custom}/plugins/zsh-autosuggestions ]] && plugins+=(zsh-autosuggestions)
+    [[ -d ${ZSH_CUSTOM:-~/.oh-my-zsh/custom}/plugins/zsh-syntax-highlighting ]] && plugins+=(zsh-syntax-highlighting)
+    [[ -n "$ENABLE_GIT_FEATURES" ]] && plugins+=(git)
+    
+    source $ZSH/oh-my-zsh.sh
+fi
 
 # Git Aliases (only if enabled)
 if [[ -n "$ENABLE_GIT_FEATURES" ]]; then
@@ -253,20 +206,6 @@ if [[ -n "$ENABLE_GIT_FEATURES" ]]; then
     alias gacm='git add . && git commit -m'
 fi
 
-# -------------------------------
-#  Miscellaneous 
-# -------------------------------
-
-# Safety aliases
-alias cp="cp -i"
-alias mv="mv -i"
-
-# Set vim as default editor
-export EDITOR='vim'
-
-# Reload zshrc
-alias reload="source ~/.zshrc"
-
 # System monitoring function (only if enabled)
 if [[ -n "$ENABLE_SYSTEM_MONITORING" ]]; then
     system_info() {
@@ -276,56 +215,6 @@ if [[ -n "$ENABLE_SYSTEM_MONITORING" ]]; then
         echo "${BOLD_BLUE}Uptime: ${BOLD_GREEN}$(get_uptime)${RESET}"
     }
 fi
-
-# Welcome message (only if enabled)
-if [[ -n "$ENABLE_WELCOME_MESSAGE" ]]; then
-    welcome_message() {
-        echo ""
-        # Check if lolcat is installed
-        if command -v lolcat >/dev/null 2>&1; then
-            cat << "EOF" | lolcat -a -d 1
-.::    .   .:::.,::::::   :::       .,-:::::     ...     .        :  .,::::::  
-';;,  ;;  ;;;' ;;;;''''   ;;;     ,;;;'````'  .;;;;;;;.  ;;,.    ;;; ;;;;''''  
- '[[, [[, [['   [[cccc    [[[     [[[        ,[[     \[[,[[[[, ,[[[[, [[cccc   
-   Y$c$$$c$P    $$""""    $$'     $$$        $$$,     $$$$$$$$$$$"$$$ $$""""   
-    "88"888     888oo,__ o88oo,.__`88bo,__,o,"888,_ _,88P888 Y88" 888o888oo,__ 
-     "M "M"     """"YUMMM""""YUMMM  "YUMMMMMP" "YMMMMMP" MMM  M'  "MMM""""YUMMM
-EOF
-        else
-            echo "${BOLD_CYAN}"
-            cat << "EOF"
-.::    .   .:::.,::::::   :::       .,-:::::     ...     .        :  .,::::::  
-';;,  ;;  ;;;' ;;;;''''   ;;;     ,;;;'````'  .;;;;;;;.  ;;,.    ;;; ;;;;''''  
- '[[, [[, [['   [[cccc    [[[     [[[        ,[[     \[[,[[[[, ,[[[[, [[cccc   
-   Y$c$$$c$P    $$""""    $$'     $$$        $$$,     $$$$$$$$$$$"$$$ $$""""   
-    "88"888     888oo,__ o88oo,.__`88bo,__,o,"888,_ _,88P888 Y88" 888o888oo,__ 
-     "M "M"     """"YUMMM""""YUMMM  "YUMMMMMP" "YMMMMMP" MMM  M'  "MMM""""YUMMM
-EOF
-            echo "${RESET}"
-        fi
-        echo "${BOLD_PURPLE}$(date '+%H:%M:%S')${RESET} on ${BOLD_GREEN}$(date '+%b %d')${RESET} ${BOLD_YELLOW}• Get to work! 🚀${RESET}"
-        echo ""
-    }
-    
-    # Execute welcome message on shell start
-    welcome_message
-fi
-
-# Custom prompt with git information and current time
-PROMPT='%n@%m:%~$ '
-
-# ================================
-#  End of zshrc File             
-# ================================ 
-
-# Add helper functions near the top after OS detection
-command_exists() {
-    command -v "$1" >/dev/null 2>&1
-}
-
-feature_warn() {
-    echo "${YELLOW}Warning: $1 requires $2, which is not available${RESET}" >&2
-}
 
 # Add to the Network Tools section
 if [[ -n "$ENABLE_NETWORK_TOOLS" ]]; then
@@ -390,7 +279,96 @@ if [[ -n "$ENABLE_NETWORK_TOOLS" ]]; then
     }
 fi
 
-# Add File Tools section
+# C++ project build management (only if enabled)
+if [[ -n "$ENABLE_CPP_TOOLS" ]]; then
+    alias build="make -j$CPU_COUNT"
+    
+    alias clean="make clean"
+    alias rebuild="make clean && build"
+    alias cppcheck="cppcheck --enable=all"
+    
+    # Version checking aliases
+    alias gccv="gcc --version"
+    alias gppv="g++ --version"
+    alias clangv="clang --version"
+    alias makev="make --version"
+    alias cmakev="cmake --version"
+    alias glibcv="ldd --version"
+fi
+
+# Node.js Tools
+if [[ -n "$ENABLE_NODE_TOOLS" ]]; then
+    # Version management
+    alias nv='node --version'
+    alias npmv='npm --version'
+    alias npml='npm list --depth=0'
+    alias npmg='npm list -g --depth=0'
+
+    # NPM shortcuts
+    alias ni='npm install'
+    alias nid='npm install --save-dev'
+    alias nig='npm install -g'
+    alias nr='npm run'
+    alias nst='npm start'
+    alias nt='npm test'
+    alias nrb='npm run build'
+    alias nrd='npm run dev'
+    alias nout='npm outdated'
+    alias nrm='npm remove'
+fi
+
+# Qt Tools
+if [[ -n "$ENABLE_QT_TOOLS" ]]; then
+    # Add Qt to PATH if it exists in common locations
+    if [[ "$IS_MACOS" == true ]]; then
+        [[ -d "/usr/local/opt/qt/bin" ]] && export PATH="/usr/local/opt/qt/bin:$PATH"
+    else
+        [[ -d "/usr/lib/qt/bin" ]] && export PATH="/usr/lib/qt/bin:$PATH"
+    fi
+    
+    # Qt tools aliases
+    alias qtc='qtcreator'
+    alias qtc.='qtcreator .'
+    alias qtd='designer'
+    alias qtv='qmake --version'
+    alias qmake-debug='qmake CONFIG+=debug'
+    alias qmake-release='qmake CONFIG+=release'
+    alias qclean='make clean && rm -rf debug release Makefile*'
+fi
+
+# SSH Tools
+if [[ -n "$ENABLE_SSH_TOOLS" ]]; then
+    # Basic SSH aliases
+    alias sshls='ls -l ~/.ssh'
+    alias sshconfig='$EDITOR ~/.ssh/config'
+    alias ssha='eval "$(ssh-agent -s)" && ssh-add'
+    
+    # Simple helper to copy SSH key to clipboard
+    function sshkey() {
+        if [[ "$IS_MACOS" == true ]]; then
+            cat ~/.ssh/id_rsa.pub | pbcopy
+        elif command_exists xclip; then
+            cat ~/.ssh/id_rsa.pub | xclip -selection clipboard
+        else
+            cat ~/.ssh/id_rsa.pub
+        fi
+    }
+fi
+
+# CMake Tools
+if [[ -n "$ENABLE_CMAKE_TOOLS" ]]; then
+    # Build directory management
+    alias cmaked='cmake -S . -B build -DCMAKE_BUILD_TYPE=Debug'
+    alias cmaker='cmake -S . -B build -DCMAKE_BUILD_TYPE=Release'
+    alias cb='cmake --build build -j$CPU_COUNT'
+    alias ct='cd build && ctest --output-on-failure'
+    alias cr='./build/bin/main'
+    alias cmclean='rm -rf build/'
+    alias cmrebuild='cmclean && cmaked && cb'
+    alias cmv='cmake --version'
+fi
+
+# File Tools
 if [[ -n "$ENABLE_FILE_TOOLS" ]]; then
     # ff: Find files by name pattern
     # Usage: ff [pattern]
@@ -513,7 +491,7 @@ if [[ -n "$ENABLE_FILE_TOOLS" ]]; then
     }
 fi
 
-# Add Help Menu system
+# Help Menu
 if [[ -n "$ENABLE_HELP_MENU" ]]; then
     function help() {
         local filter="$1"
@@ -633,3 +611,37 @@ if [[ -n "$ENABLE_HELP_MENU" ]]; then
     # Add aliases for quick access
     alias h='help'
 fi 
+
+# Welcome message (only if enabled)
+if [[ -n "$ENABLE_WELCOME_MESSAGE" ]]; then
+    welcome_message() {
+        echo ""
+        # Check if lolcat is installed
+        if command -v lolcat >/dev/null 2>&1; then
+            cat << "EOF" | lolcat -a -d 1
+.::    .   .:::.,::::::   :::       .,-:::::     ...     .        :  .,::::::  
+';;,  ;;  ;;;' ;;;;''''   ;;;     ,;;;'````'  .;;;;;;;.  ;;,.    ;;; ;;;;''''  
+ '[[, [[, [['   [[cccc    [[[     [[[        ,[[     \[[,[[[[, ,[[[[, [[cccc   
+   Y$c$$$c$P    $$""""    $$'     $$$        $$$,     $$$$$$$$$$$"$$$ $$""""   
+    "88"888     888oo,__ o88oo,.__`88bo,__,o,"888,_ _,88P888 Y88" 888o888oo,__ 
+     "M "M"     """"YUMMM""""YUMMM  "YUMMMMMP" "YMMMMMP" MMM  M'  "MMM""""YUMMM
+EOF
+        else
+            echo "${BOLD_CYAN}"
+            cat << "EOF"
+.::    .   .:::.,::::::   :::       .,-:::::     ...     .        :  .,::::::  
+';;,  ;;  ;;;' ;;;;''''   ;;;     ,;;;'````'  .;;;;;;;.  ;;,.    ;;; ;;;;''''  
+ '[[, [[, [['   [[cccc    [[[     [[[        ,[[     \[[,[[[[, ,[[[[, [[cccc   
+   Y$c$$$c$P    $$""""    $$'     $$$        $$$,     $$$$$$$$$$$"$$$ $$""""   
+    "88"888     888oo,__ o88oo,.__`88bo,__,o,"888,_ _,88P888 Y88" 888o888oo,__ 
+     "M "M"     """"YUMMM""""YUMMM  "YUMMMMMP" "YMMMMMP" MMM  M'  "MMM""""YUMMM
+EOF
+            echo "${RESET}"
+        fi
+        echo "${BOLD_PURPLE}$(date '+%H:%M:%S')${RESET} on ${BOLD_GREEN}$(date '+%b %d')${RESET} ${BOLD_YELLOW}• Get to work! 🚀${RESET}"
+        echo ""
+    }
+    
+    # Execute welcome message on shell start
+    welcome_message
+fi

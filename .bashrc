@@ -6,10 +6,6 @@
 #    (_)  _/ /\____/____/_/ /_/_/   \___/  
 #       /___/                              
 #
-# ================================================
-#   Josh's Ultimate Development Environment Config  
-# ================================================
-#
 # ================================
 #        Dependencies Setup        
 # ================================
@@ -24,7 +20,7 @@ if [[ "$(uname)" == "Darwin" ]]; then
     export CPU_COUNT=$(sysctl -n hw.ncpu)
     
     # System monitoring commands for macOS
-    function get_cpu_usage() {
+    function get_cpu_usg() {
         top -l 1 | grep -E "^CPU" | awk '{print $3}' | cut -d'%' -f1
     }
     
@@ -48,7 +44,7 @@ elif [[ "$(uname)" == "Linux" ]]; then
     export CPU_COUNT=$(nproc)
     
     # System monitoring commands for Linux
-    function get_cpu_usage() {
+    function get_cpu_usg() {
         top -bn1 | grep "Cpu(s)" | awk '{print $2}'
     }
     
@@ -64,6 +60,62 @@ elif [[ "$(uname)" == "Linux" ]]; then
         uptime -p
     }
 fi
+
+# At the top of the file, add a helper function for command checking
+command_exists() {
+    command -v "$1" >/dev/null 2>&1
+}
+
+# Helper function for feature warnings
+feature_warn() {
+    echo -e "${YELLOW}Warning: $1 requires $2, which is not available${RESET}" >&2
+}
+
+up() {
+    local d=""
+    for ((i=1; i<=$1; i++)); do
+        d="../$d"
+    done
+    cd "$d" || return
+}
+
+# Modify the system monitoring section to be more resilient 
+get_cpu_usg() {
+    if [[ "$IS_MACOS" == true ]]; then
+        if command_exists top; then
+            top -l 1 | grep -E "^CPU" | awk '{print $3}' | cut -d'%' -f1
+        else
+            echo "N/A"
+        fi
+    else
+        if command_exists top; then
+            top -bn1 | grep "Cpu(s)" | awk '{print $2}'
+        elif command_exists vmstat; then
+            vmstat 1 2 | tail -1 | awk '{print 100-$15}'
+        else
+            echo "N/A"
+        fi
+    fi
+}
+
+# Wordle Solver (boardle)
+boardle() {
+    local words_file="words.txt"
+    
+    # Prompt user for inputs
+    read -p "Enter letters that are NOT in the word: " not_in_word
+    read -p "Enter letters that ARE in the word but position is unknown (no spaces): " in_word_but_not_pos
+    read -p "Enter known letters with their position (e.g. '_a__e' for 2nd and 5th letters known): " known_positions
+
+    # Convert the inputs to usable formats
+    # Escape dots for known letters and replace _ with dots
+    local known_positions_regex=$(echo "$known_positions" | sed 's/_/./g')
+
+    # Read through the word list, applying the constraints
+    grep -v -i -E "[$not_in_word]" $words_file |       # Filter out words with letters that shouldn't be in the word
+    grep -i -E "[$in_word_but_not_pos]" |              # Filter words containing letters known but without specific position
+    grep -i -E "^$known_positions_regex$"              # Filter words matching the exact positions of known letters
+}
 
 # Package Dependencies:
 if [[ "$IS_MACOS" == true ]]; then
@@ -85,8 +137,6 @@ fi
 
 # Feature toggles - Comment out to disable related functionality
 ENABLE_CPP_TOOLS=true
-ENABLE_DOCKER=true
-ENABLE_KUBERNETES=true
 ENABLE_SYSTEM_MONITORING=true
 ENABLE_GIT_FEATURES=true
 ENABLE_WELCOME_MESSAGE=true
@@ -107,42 +157,6 @@ ENABLE_HELP_MENU=true
 
 # Color prompt (optional)
 export PS1='\[\e[0;34m\]\u@\h:\[\e[0;32m\]\w\[\e[m\]\$ '
-
-# Aliases for navigation
-alias ..="cd .."
-alias ...="cd ../.."
-alias ....="cd ../../.."
-alias h="cd ~"              # Go to home directory
-alias ll="ls -alF"          # Long listing format
-alias la="ls -A"            # List all but . and ..
-alias l="ls -CF"            # List in columns
-alias md="mkdir -p"         # Create directories recursively
-alias rd="rmdir"            # Remove directory
-alias ~="cd ~"              # Quick access to home
-alias home="cd ~"
-
-# Aliases for C++ project build management
-if [[ -n "$ENABLE_CPP_TOOLS" ]]; then
-    alias build="make -j$CPU_COUNT"         # Build using make with max cores
-    alias clean="make clean"              # Clean the project
-    alias rebuild="make clean && build"   # Clean and rebuild
-    alias run="./a.out"                   # Run output after building
-    alias gpp="g++ -std=c++17"            # Compile with g++ and C++17 standard
-    alias cppcheck="cppcheck --enable=all" # Static code analysis with cppcheck
-    
-    # Aliases for version checking of compilers and libraries
-    alias gccv="gcc --version"            # Check GCC version
-    alias gppv="g++ --version"            # Check G++ version
-    alias clangv="clang --version"        # Check Clang version
-    alias makev="make --version"          # Check make version
-    alias cmakev="cmake --version"        # Check CMake version
-    alias glibcv="ldd --version"          # Check glibc version
-fi
-
-# -------------------------------
-#  ASCII Color Escape Codes
-# -------------------------------
-# Colors for prompt or echo commands (bold, underline, etc.)
 
 # Primary Colors
 BLACK='\033[0;30m'
@@ -187,86 +201,6 @@ BRIGHT_WHITE='\033[0;97m'
 # Reset Color
 RESET='\033[0m'
 
-# Example usage: 
-# echo -e "${BOLD_GREEN}Success: Compilation finished!${RESET}"
-
-# -------------------------------
-#  Useful Functions
-# -------------------------------
-
-# Custom function documentation
-
-# Navigation
-# up N: Move up N directories
-# Usage: up 2 (moves up two directories)
-up() {
-    local d=""
-    for ((i=1; i<=$1; i++)); do
-        d="../$d"
-    done
-    cd "$d" || return
-}
-
-# Wordle Solver (boardle)
-boardle() {
-    local words_file="words.txt"
-    
-    # Prompt user for inputs
-    read -p "Enter letters that are NOT in the word: " not_in_word
-    read -p "Enter letters that ARE in the word but position is unknown (no spaces): " in_word_but_not_pos
-    read -p "Enter known letters with their position (e.g. '_a__e' for 2nd and 5th letters known): " known_positions
-
-    # Convert the inputs to usable formats
-    # Escape dots for known letters and replace _ with dots
-    local known_positions_regex=$(echo "$known_positions" | sed 's/_/./g')
-
-    # Read through the word list, applying the constraints
-    grep -v -i -E "[$not_in_word]" $words_file |       # Filter out words with letters that shouldn't be in the word
-    grep -i -E "[$in_word_but_not_pos]" |              # Filter words containing letters known but without specific position
-    grep -i -E "^$known_positions_regex$"              # Filter words matching the exact positions of known letters
-}
-# Function to find large files
-alias findlarge="find . -type f -exec du -h {} + | sort -rh | head -n 10"
-
-# Git Aliases
-if [[ -n "$ENABLE_GIT_FEATURES" ]]; then
-    alias gs='git status -sb'                      # Short status with branch info
-    alias gf='git fetch --all --prune'              # Fetch all remotes and prune deleted branches
-    alias gcmsg='git commit -m'                     # Commit with message
-    alias gp='git push'                             # Push to the current branch
-    alias gpl='git pull --rebase'                   # Pull with rebase to avoid unnecessary merge commits
-    alias gaa='git add --all'                       # Add all changes to the staging area
-    alias gcm='git checkout main'                   # Checkout the main branch
-    alias gco='git checkout'                        # Checkout a branch
-    alias gcb='git checkout -b'                     # Create and switch to a new branch
-    alias gl='git log --oneline --graph --all'      # Pretty log with graph
-    alias grm='git branch -d'                       # Remove (delete) a local branch
-    alias gbd='git branch -D'                       # Force delete a local branch
-    alias gss='git stash save -u'                   # Stash including untracked files
-    alias gst='git stash'                           # Stash without options
-    alias gstp='git stash pop'                    # Apply the most recent stash
-    alias gsta-index='git stash apply --index'      # Apply and keep index state
-    alias gcl='git clone'                           # Clone a repository
-    alias gpo='git push origin'                     # Push to the origin remote
-    alias gph='git push --force-with-lease'         # Safely force-push to the current branch
-    alias grhh='git reset --hard HEAD'              # Reset hard to the last commit
-    alias gclean='git clean -fd'                    # Remove untracked files and directories
-
-    # Git Shortcut to add and commit all changes with a message
-    alias gacm='git add . && git commit -m'
-fi
-
-# -------------------------------
-#  Miscellaneous 
-# -------------------------------
-
-# Make bash case-insensitive for tab-completion
-bind "set completion-ignore-case on"
-
-# Prevents accidentally overwriting files
-alias cp="cp -i"
-alias mv="mv -i"
-
 # Set vim as the default editor
 export EDITOR='vim'
 
@@ -274,43 +208,16 @@ export EDITOR='vim'
 alias reload="source ~/.bashrc"
 echo -e "${BOLD_BLUE}bashrc loaded successfully!${RESET}"
 
-# Add additional configurations below as necessary
-
 # System monitoring function (only if enabled)
 if [[ -n "$ENABLE_SYSTEM_MONITORING" ]]; then
     system_info() {
-        echo -e "${BOLD_BLUE}CPU Usage: ${BOLD_GREEN}$(get_cpu_usage)%${RESET}"
+        echo -e "${BOLD_BLUE}CPU Usage: ${BOLD_GREEN}$(get_cpu_usg)%${RESET}"
         echo -e "${BOLD_BLUE}Memory Usage: ${BOLD_GREEN}$(get_memory_usage)${RESET}"
         echo -e "${BOLD_BLUE}Disk Usage: ${BOLD_GREEN}$(get_disk_usage)${RESET}"
         echo -e "${BOLD_BLUE}Uptime: ${BOLD_GREEN}$(get_uptime)${RESET}"
     }
-fi
 
-# Welcome message (only if enabled)
-if [[ -n "$ENABLE_WELCOME_MESSAGE" ]]; then
-    welcome_message() {
-        echo ""
-        echo -e "${BOLD_CYAN}"
-        cat << "EOF"
-.::    .   .:::.,::::::   :::       .,-:::::     ...     .        :  .,::::::  
-';;,  ;;  ;;;' ;;;;''''   ;;;     ,;;;'````'  .;;;;;;;.  ;;,.    ;;; ;;;;''''  
- '[[, [[, [['   [[cccc    [[[     [[[        ,[[     \[[,[[[[, ,[[[[, [[cccc   
-   Y$c$$$c$P    $$""""    $$'     $$$        $$$,     $$$$$$$$$$$"$$$ $$""""   
-    "88"888     888oo,__ o88oo,.__`88bo,__,o,"888,_ _,88P888 Y88" 888o888oo,__ 
-     "M "M"     """"YUMMM""""YUMMM  "YUMMMMMP" "YMMMMMP" MMM  M'  "MMM""""YUMMM
-EOF
-        echo -e "${RESET}"
-        echo -e "${BOLD_PURPLE}$(date '+%H:%M:%S')${RESET} on ${BOLD_GREEN}$(date '+%b %d')${RESET} ${BOLD_YELLOW}• Get to work! 🚀${RESET}"
-        echo ""
-    }
-    
-    # Execute welcome message on shell start
-    welcome_message
 fi
-
-# ================================
-#  End of bashrc File             
-# ================================
 
 # After the existing package dependencies, add:
 if [[ "$IS_MACOS" == true ]]; then
@@ -368,6 +275,23 @@ if [[ -n "$ENABLE_NODE_TOOLS" ]]; then
     alias npmg='npm list -g --depth=0'
     alias yarng='yarn global list'
 fi
+# Aliases for C++ project build management
+if [[ -n "$ENABLE_CPP_TOOLS" ]]; then
+    alias build="make -j$CPU_COUNT"         # Build using make with max cores
+    alias clean="make clean"              # Clean the project
+    alias rebuild="make clean && build"   # Clean and rebuild
+    alias run="./a.out"                   # Run output after building
+    alias gpp="g++ -std=c++17"            # Compile with g++ and C++17 standard
+    alias cppcheck="cppcheck --enable=all" # Static code analysis with cppcheck
+    
+    # Aliases for version checking of compilers and libraries
+    alias gccv="gcc --version"            # Check GCC version
+    alias gppv="g++ --version"            # Check G++ version
+    alias clangv="clang --version"        # Check Clang version
+    alias makev="make --version"          # Check make version
+    alias cmakev="cmake --version"        # Check CMake version
+    alias glibcv="ldd --version"          # Check glibc version
+fi
 
 # Qt development tools
 if [[ -n "$ENABLE_QT_TOOLS" ]]; then
@@ -383,12 +307,12 @@ if [[ -n "$ENABLE_QT_TOOLS" ]]; then
     
     # Qt Creator aliases
     alias qtc='qtcreator'
-    alias qtc.='qtcreator .'
     alias qtcp='qtcreator CMakeLists.txt'
     
     # Qt utilities
-    alias qmake6='qmake6'
-    alias uic6='uic6'
+    alias qm='qmake'
+    alias qm6='qmake6'
+    alias u6='uic6'
     alias moc6='moc6'
     alias rcc6='rcc6'
     
@@ -398,37 +322,14 @@ fi
 
 # CMake tools and shortcuts
 if [[ -n "$ENABLE_CMAKE_TOOLS" ]]; then
-    # CMake build directory management
-    # mkbuild: Create and enter build directory
-    # Usage: mkbuild
-    function mkbuild() {
-        mkdir -p build && cd build
-    }
-    
-    # cmakeconf: Configure CMake project with specified build type
-    # Usage: cmakeconf [Debug|Release|RelWithDebInfo|MinSizeRel]
-    # Default: Debug
-    function cmakeconf() {
+    mkbuild() { mkdir -p build && cd build; }
+    cmakeconf() {
         local build_type=${1:-Debug}
         cmake -DCMAKE_BUILD_TYPE=$build_type -GNinja ..
     }
-    
-    # cmakebuild: Build project using ninja with optimal core count
-    # Usage: cmakebuild
-    function cmakebuild() {
-        ninja -j$CPU_COUNT
-    }
-    
-    # Quick CMake project setup
-    alias cmaked='mkbuild && cmakeconf Debug'        # Setup Debug build
-    alias cmaker='mkbuild && cmakeconf Release'      # Setup Release build
-    alias cb='cmakebuild'                           # Build current configuration
-    alias cr='cmake --build . --target run'         # Run the project
-    alias ct='cmake --build . --target test'        # Run tests
-    
-    # CMake cleanup
-    alias cmclean='rm -rf build/'                   # Remove build directory
-    alias cmfresh='cmclean && cmaked'               # Clean and rebuild Debug
+    alias cmaked='mkbuild && cmakeconf Debug'
+    alias cmaker='mkbuild && cmakeconf Release'
+    alias cb='ninja -j$CPU_COUNT'
 fi
 
 # SSH and remote file management tools
@@ -485,124 +386,35 @@ if [[ -n "$ENABLE_SSH_TOOLS" ]]; then
     alias sshconf='$EDITOR ~/.ssh/config'
 fi
 
-# Network and system utilities
-if [[ -n "$ENABLE_NETWORK_TOOLS" ]]; then
-    # Port management
-    # portcheck: Check what process is using a specific port
-    # Usage: portcheck PORT_NUMBER
-    # Example: portcheck 3000
-    function portcheck() {
-        if [[ "$IS_MACOS" == true ]]; then
-            lsof -i ":$1"
-        else
-            netstat -tuln | grep ":$1"
-        fi
-    }
-    
-    # killport: Kill process using a specific port
-    # Usage: killport PORT_NUMBER
-    # Example: killport 3000
-    function killport() {
-        if [[ "$IS_MACOS" == true ]]; then
-            lsof -ti ":$1" | xargs kill -9
-        else
-            fuser -k "$1/tcp"
-        fi
-    }
-    
-    # Public IP (with offline fallback)
-    function get_public_ip() {
-        if command_exists curl; then
-            curl -s --connect-timeout 1 https://api.ipify.org 2>/dev/null || echo "No internet connection"
-        else
-            feature_warn "Public IP check" "curl"
-        fi
-    }
-    alias myip='get_public_ip'
-
-    # Local IP (more resilient)
-    function get_local_ip() {
-        if [[ "$IS_MACOS" == true ]]; then
-            if command_exists ipconfig; then
-                ipconfig getifaddr en0 || ipconfig getifaddr en1
-            else
-                ifconfig en0 2>/dev/null | grep 'inet ' | awk '{print $2}'
-            fi
-        else
-            hostname -I 2>/dev/null | awk '{print $1}' || \
-            ip addr show 2>/dev/null | grep 'inet ' | grep -v 127.0.0.1 | awk '{print $2}' | cut -d/ -f1 || \
-            ifconfig 2>/dev/null | grep 'inet ' | grep -v 127.0.0.1 | awk '{print $2}'
-        fi
-    }
-    alias localip='get_local_ip'
-
-    # Network utilities
-    alias ports='netstat -tuln'                     # List all ports
-    alias listening='if [[ "$IS_MACOS" == true ]]; then lsof -iTCP -sTCP:LISTEN -n -P; else ss -tulnp; fi'  # Show listening ports
-    
-    # Quick ping test
-    alias pg='ping 8.8.8.8'                        # Quick internet connectivity test
-fi
-
 # File and content search tools
 if [[ -n "$ENABLE_FILE_TOOLS" ]]; then
-    # ff: Find files by name pattern
-    # Usage: ff [pattern]
-    # Example: ff "*.cpp" or ff config
-    function ff() {
+    # Find files
+    ff() {
         local pattern="${1:-}"
         if [ -z "$pattern" ]; then
-            if command_exists fzf; then
-                find . -type f 2>/dev/null | fzf --preview 'cat {}'
-            else
-                echo -e "${YELLOW}Usage: ff pattern${RESET}"
-                echo -e "${YELLOW}Example: ff '*.cpp' or ff config${RESET}"
-                return 1
-            fi
+            command_exists fzf && find . -type f 2>/dev/null | fzf --preview 'cat {}' || \
+            echo "${YELLOW}Usage: ff pattern (e.g., ff '*.cpp')${RESET}"
         else
-            # Use find with case-insensitive name matching
-            if command_exists fzf; then
-                find . -type f -iname "*${pattern}*" 2>/dev/null | fzf --preview 'cat {}'
-            else
-                find . -type f -iname "*${pattern}*" 2>/dev/null | while read -r file; do
-                    echo -e "${GREEN}${file}${RESET}"
-                done
-            fi
+            find . -type f -iname "*${pattern}*" 2>/dev/null | while read -r file; do
+                echo "${GREEN}${file}${RESET}"
+            done
         fi
     }
-
-    # fc: Find content in files
-    # Usage: fc "search pattern" [file pattern]
-    # Example: fc "main" "*.cpp" or fc "TODO"
-    function fc() {
-        local search_pattern="$1"
-        local file_pattern="${2:-*}"
+    
+    # Find in files
+    fc() {
+        local pattern="$1"
+        [ -z "$pattern" ] && { echo "${YELLOW}Usage: fc 'pattern' [file-pattern]${RESET}"; return 1; }
         
-        if [ -z "$search_pattern" ]; then
-            echo -e "${YELLOW}Usage: fc 'search pattern' [file pattern]${RESET}"
-            echo -e "${YELLOW}Example: fc 'main' '*.cpp' or fc 'TODO'${RESET}"
-            return 1
-        fi
-
         if command_exists rg; then
-            if command_exists fzf; then
-                rg --color=always -l "$search_pattern" 2>/dev/null | \
-                fzf --preview "rg --color=always -n '$search_pattern' {}"
-            else
-                rg --color=always -n "$search_pattern" 2>/dev/null
-            fi
+            rg --color=always -n "$pattern" 2>/dev/null
         else
-            if command_exists fzf; then
-                find . -type f -name "$file_pattern" -exec grep -l "$search_pattern" {} \; 2>/dev/null | \
-                fzf --preview "grep -n --color=always '$search_pattern' {}"
-            else
-                find . -type f -name "$file_pattern" -exec grep -l "$search_pattern" {} \; 2>/dev/null | \
-                while read -r file; do
-                    echo -e "${GREEN}${file}${RESET}"
-                    grep -n --color=always "$search_pattern" "$file"
-                    echo ""
-                done
-            fi
+            find . -type f -name "${2:-*}" -exec grep -l "$pattern" {} \; 2>/dev/null | \
+            while read -r file; do
+                echo "${GREEN}${file}${RESET}"
+                grep -n --color=always "$pattern" "$file"
+                echo ""
+            done
         fi
     }
 
@@ -674,35 +486,6 @@ if [[ -n "$ENABLE_FILE_TOOLS" ]]; then
     }
 fi
 
-# At the top of the file, add a helper function for command checking
-command_exists() {
-    command -v "$1" >/dev/null 2>&1
-}
-
-# Helper function for feature warnings
-feature_warn() {
-    echo -e "${YELLOW}Warning: $1 requires $2, which is not available${RESET}" >&2
-}
-
-# Modify the system monitoring section to be more resilient
-function get_cpu_usage() {
-    if [[ "$IS_MACOS" == true ]]; then
-        if command_exists top; then
-            top -l 1 | grep -E "^CPU" | awk '{print $3}' | cut -d'%' -f1
-        else
-            echo "N/A"
-        fi
-    else
-        if command_exists top; then
-            top -bn1 | grep "Cpu(s)" | awk '{print $2}'
-        elif command_exists vmstat; then
-            vmstat 1 2 | tail -1 | awk '{print 100-$15}'
-        else
-            echo "N/A"
-        fi
-    fi
-}
-
 # Modify network-dependent aliases to have offline alternatives
 if [[ -n "$ENABLE_NETWORK_TOOLS" ]]; then
     # Public IP (with offline fallback)
@@ -730,25 +513,6 @@ if [[ -n "$ENABLE_NETWORK_TOOLS" ]]; then
         fi
     }
     alias localip='get_local_ip'
-fi
-
-# Modify the welcome message to not depend on lolcat
-if [[ -n "$ENABLE_WELCOME_MESSAGE" ]]; then
-    welcome_message() {
-        echo ""
-        echo -e "${BOLD_CYAN}"
-        cat << "EOF"
-.::    .   .:::.,::::::   :::       .,-:::::     ...     .        :  .,::::::  
-';;,  ;;  ;;;' ;;;;''''   ;;;     ,;;;'````'  .;;;;;;;.  ;;,.    ;;; ;;;;''''  
- '[[, [[, [['   [[cccc    [[[     [[[        ,[[     \[[,[[[[, ,[[[[, [[cccc   
-   Y$c$$$c$P    $$""""    $$'     $$$        $$$,     $$$$$$$$$$$"$$$ $$""""   
-    "88"888     888oo,__ o88oo,.__`88bo,__,o,"888,_ _,88P888 Y88" 888o888oo,__ 
-     "M "M"     """"YUMMM""""YUMMM  "YUMMMMMP" "YMMMMMP" MMM  M'  "MMM""""YUMMM
-EOF
-        echo -e "${RESET}"
-        echo -e "${BOLD_PURPLE}$(date '+%H:%M:%S')${RESET} on ${BOLD_GREEN}$(date '+%b %d')${RESET} ${BOLD_YELLOW}• Get to work! 🚀${RESET}"
-        echo ""
-    }
 fi
 
 # Modify file search to work with basic tools if advanced ones aren't available
@@ -781,13 +545,19 @@ fi
 if [[ -n "$ENABLE_GIT_FEATURES" ]]; then
     if command_exists git; then
         # Basic git aliases that work with older git versions
-        alias gs='git status'
+        alias gs='git status --short'
         alias gl='git log'
         alias ga='git add'
         alias gc='git commit'
         alias gcmsg='git commit -m'
+        alias ghead='git rev-parse --abbrev-ref HEAD'
+        alias gbranch='git branch --show-current'
+        alias gsub='git submodule update --init --recursive'
+        alias gsubpull='git submodule update --recursive --remote'
+        alias spull='git submodule foreach git pull origin master'
         alias gp='git push'
         alias gpl='git pull'
+        alias gcfg='git config --global --edit'
         # Only add advanced aliases if git version supports them
         if git --version | grep -q -E "2\.[0-9]+\.[0-9]+"; then
             alias gaa='git add --all'
@@ -887,7 +657,7 @@ if [[ -n "$ENABLE_HELP_MENU" ]]; then
                 "findlarge" "find large files" \
                 "system_info" "show system status" \
                 "reload" "reload shell config" \
-                "h or ~" "go to home dir" \
+                "home" "go to home dir" \
                 "md name" "mkdir -p name" \
                 "rd name" "remove directory"
             echo ""
@@ -897,7 +667,6 @@ if [[ -n "$ENABLE_HELP_MENU" ]]; then
         if $show_all; then
             echo -e "${BOLD_BLUE}Use 'man command' for more detailed information about specific commands${RESET}\n"
         elif [ -z "$(help_matches "$filter")" ]; then
-            # If filter provided but no matches found
             echo -e "\n${BOLD_RED}No matches found for filter: $filter${RESET}"
             echo -e "${BOLD_RED}Available filters are:${RESET}"
             echo -e "${BOLD_CYAN}file  git  build  network  system${RESET}"
@@ -917,7 +686,39 @@ if [[ -n "$ENABLE_HELP_MENU" ]]; then
         echo "$found"
     }
     
-    # Add aliases for quick access
-    alias h?='help'
-    alias help='help'
+    # Add alias for quick access
+    alias h='help'
+fi
+
+# Welcome message (only if enabled)
+if [[ -n "$ENABLE_WELCOME_MESSAGE" ]]; then
+    welcome_message() {
+        echo ""
+        if command_exists lolcat; then
+            cat << "EOF" | lolcat -a -d 1
+.::    .   .:::.,::::::   :::       .,-:::::     ...     .        :  .,::::::  
+';;,  ;;  ;;;' ;;;;''''   ;;;     ,;;;'````'  .;;;;;;;.  ;;,.    ;;; ;;;;''''  
+ '[[, [[, [['   [[cccc    [[[     [[[        ,[[     \[[,[[[[, ,[[[[, [[cccc   
+   Y$c$$$c$P    $$""""    $$'     $$$        $$$,     $$$$$$$$$$$"$$$ $$""""   
+    "88"888     888oo,__ o88oo,.__`88bo,__,o,"888,_ _,88P888 Y88" 888o888oo,__ 
+     "M "M"     """"YUMMM""""YUMMM  "YUMMMMMP" "YMMMMMP" MMM  M'  "MMM""""YUMMM
+EOF
+        else
+            echo "${BOLD_CYAN}"
+            cat << "EOF"
+.::    .   .:::.,::::::   :::       .,-:::::     ...     .        :  .,::::::  
+';;,  ;;  ;;;' ;;;;''''   ;;;     ,;;;'````'  .;;;;;;;.  ;;,.    ;;; ;;;;''''  
+ '[[, [[, [['   [[cccc    [[[     [[[        ,[[     \[[,[[[[, ,[[[[, [[cccc   
+   Y$c$$$c$P    $$""""    $$'     $$$        $$$,     $$$$$$$$$$$"$$$ $$""""   
+    "88"888     888oo,__ o88oo,.__`88bo,__,o,"888,_ _,88P888 Y88" 888o888oo,__ 
+     "M "M"     """"YUMMM""""YUMMM  "YUMMMMMP" "YMMMMMP" MMM  M'  "MMM""""YUMMM
+EOF
+            echo "${RESET}"
+        fi
+        echo "${BOLD_PURPLE}$(date '+%H:%M:%S')${RESET} on ${BOLD_GREEN}$(date '+%b %d')${RESET} ${BOLD_YELLOW}• Get to work! 🚀${RESET}"
+        echo ""
+    }
+    
+    # Execute welcome message on shell start
+    welcome_message
 fi
