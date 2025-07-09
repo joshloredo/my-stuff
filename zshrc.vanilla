@@ -1,0 +1,142 @@
+#------------------------------------------------------------------------------#
+#  Aliases
+#------------------------------------------------------------------------------#
+
+# General & System
+alias vzrc="vim ~/.zshrc"   # Edit this .zshrc file
+alias zshrc="source ~/.zshrc" # Reload zshrc
+alias pip="pip3"             # Use pip3 by default
+alias dfh="df -h"            # Disk free in human-readable format
+alias psa="ps aux"           # List all running processes
+alias myip="curl ifconfig.me" # Get your external IP address
+
+# File & Directory Management
+alias ls='ls -F'             # Add file type indicators
+alias l='ls -lAh'            # List in long format, including hidden files
+alias ll='ls -l'             # List in long format
+alias la='ls -a'             # List all files, including hidden
+alias md="mkdir -p"          # Create directory and parents
+alias stat="stat -c '%A %U %G %s %n'" # Show file system stats
+alias cpd="rsync -av --progress" # Recursive copy with progress
+
+# Git
+alias ga='git add'
+alias gcmsg='git commit -m'
+alias gco='git checkout'
+alias gs='git status'
+alias gp='git push'
+alias gpull='git pull'
+alias gpush='git push'
+alias gl='git log --oneline --decorate --graph' # Pretty git log
+alias gb='git branch'         # List git branches
+alias gfa='git fetch --all'    # Fetch all git remotes
+
+# Development
+alias ni='npm install'       # Install npm dependencies
+alias nis='npm install --save' # Install and save npm dependencies
+alias nid='npm install --save-dev' # Install and save dev dependencies
+alias nb='npm run build'      # Build npm project
+alias ns='npm run serve'      # Serve project with npm
+alias nt='npm test'          # Run tests with npm
+alias nd='npm run dev'        # Run npm project in dev mode
+alias mkae='make'             # Make
+
+# Networking
+alias ports='netstat -tulpn' # Show open ports
+alias speedtest='wget -O /dev/null http://speedtest.wdc01.softlayer.com/downloads/test10.zip' # Test download speed
+
+# Search
+# ff: Find file by name (case-insensitive)
+ff() { find . -iname "*$1*" ; }
+# fg: Find pattern in files (recursive, case-insensitive)
+fg() { grep -Rin --color=always "$1" . ; }
+# fh: Find in history
+fh() { history | grep "$1" ; }
+
+
+#------------------------------------------------------------------------------#
+#  Tmux Functions
+#------------------------------------------------------------------------------#
+
+# Start a new tmux session, or attach to an existing one
+ts() {
+    # If a session with the given name exists, attach to it. Otherwise, create it.
+    # If no name is provided, prompts for one.
+    if [ -z "$1" ]; then
+        read -p "Enter new session name: " session_name
+        tmux new-session -s "$session_name"
+    else
+        tmux new-session -A -s "$1"
+    fi
+}
+
+# Attach to the last used session
+ta() {
+    tmux attach-session
+}
+
+# List all tmux sessions
+tl() {
+    tmux list-sessions
+}
+
+# Kill a tmux session
+tk() {
+    if [ -z "$1" ]; then
+        tmux list-sessions
+        read -p "Enter session name to kill: " session_name
+        tmux kill-session -t "$session_name"
+    else
+        tmux kill-session -t "$1"
+    fi
+}
+
+#------------------------------------------------------------------------------#
+#  Environment & Path
+#------------------------------------------------------------------------------#
+
+# NVM
+export NVM_DIR="$HOME/.nvm"
+[ -s "$NVM_DIR/nvm.sh" ] && \. "$NVM_DIR/nvm.sh"  # This loads nvm
+[ -s "$NVM_DIR/bash_completion" ] && \. "$NVM_DIR/bash_completion"  # This loads nvm bash_completion
+
+# rbenv
+export PATH="$HOME/.rbenv/bin:$PATH"
+
+#------------------------------------------------------------------------------#
+#  Prompt
+#------------------------------------------------------------------------------#
+
+# Prompt with git info
+autoload -U colors && colors
+autoload -U vcs_info
+
+# Enable vcs_info for git and check for changes
+zstyle ':vcs_info:*' enable git
+zstyle ':vcs_info:git:*' check-for-changes true
+
+# Set strings for unstaged (*) and staged (+) changes
+zstyle ':vcs_info:git:*' unstagedstr ' *'
+zstyle ':vcs_info:git:*' stagedstr ' +'
+
+# Set the format for the git information dynamically
+precmd() {
+  # Check if inside a git repository
+  if git rev-parse --is-inside-work-tree >/dev/null 2>&1; then
+    # Check if there are changes (staged or unstaged)
+    if [[ -n $(git status --porcelain) ]]; then
+      # Dirty repo: yellow branch name
+      zstyle ':vcs_info:git:*' formats ' [%F{yellow}%b%f%u%c]'
+      zstyle ':vcs_info:git:*' actionformats ' [%F{yellow}%b%f|%a%u%c]'
+    else
+      # Clean repo: green branch name
+      zstyle ':vcs_info:git:*' formats ' [%F{green}%b%f%u%c]'
+      zstyle ':vcs_info:git:*' actionformats ' [%F{green}%b%f|%a%u%c]'
+    fi
+  fi
+  vcs_info
+}
+
+# Simple prompt with git info
+PROMPT='%F{blue}%~%f${vcs_info_msg_0_} %# '
+
